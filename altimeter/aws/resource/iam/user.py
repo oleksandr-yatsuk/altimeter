@@ -93,7 +93,7 @@ class IAMUserResourceSpec(IAMResourceSpec):
                 resource_arn = user["Arn"]
                 username = user["UserName"]
                 try:
-                    user["AccessKeys"] = cls.get_user_access_keys(client=client, username=username)
+                    user["AccessKeys"] = []
                     user["MfaDevices"] = cls.get_user_mfa_devices(client=client, username=username)
                     login_profile = cls.get_user_login_profile(client=client, username=username)
                     if login_profile is not None:
