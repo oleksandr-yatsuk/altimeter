@@ -1,7 +1,7 @@
 """Global Settings"""
 from typing import Any, Dict
 
-from pydantic import BaseSettings, root_validator
+from pydantic import BaseSettings, SecretStr, root_validator
 
 
 from altimeter.qj.settings import (
@@ -90,6 +90,19 @@ class DBConfig(BaseSettings):
 
 
 # pylint: disable=too-few-public-methods
+class PublishConfig(APIConfig):
+    """Configuration for the Publish lambda"""
+
+    env_name: str
+    tableau_project_name: str
+    tableau_server_hostname: str
+    tableau_site_id: str
+    tableau_token_name: str
+    tableau_token_value: SecretStr
+    verify_ssl: bool = True
+
+
+# pylint: disable=too-few-public-methods
 class LimitsConfig(BaseSettings):
     """Limit configurations"""
 
@@ -121,7 +134,7 @@ class APIServiceConfig(APIConfig, DBConfig, LimitsConfig, SecurityConfig):
     @root_validator(pre=True)
     def check_result_expiration_sec(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that result_expiration_sec_default does not exceed
-         result_expiration_sec_limit"""
+        result_expiration_sec_limit"""
         result_expiration_sec_default = values.get(
             "result_expiration_sec_default", DEFAULT_RESULT_EXPIRATION_SEC_DEFAULT
         )
@@ -139,7 +152,7 @@ class APIServiceConfig(APIConfig, DBConfig, LimitsConfig, SecurityConfig):
     @root_validator(pre=True)
     def check_max_graph_age_sec(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that max_graph_age_sec_default does not exceed
-         max_graph_age_sec_limit"""
+        max_graph_age_sec_limit"""
         max_graph_age_sec_default = values.get(
             "max_graph_age_sec_default", DEFAULT_MAX_GRAPH_AGE_SEC_DEFAULT
         )
@@ -157,7 +170,7 @@ class APIServiceConfig(APIConfig, DBConfig, LimitsConfig, SecurityConfig):
     @root_validator(pre=True)
     def check_max_result_age_sec(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that max_result_age_sec_default does not exceed
-         max_result_age_sec_limit"""
+        max_result_age_sec_limit"""
         max_result_age_sec_default = values.get(
             "max_result_age_sec_default", DEFAULT_MAX_RESULT_AGE_SEC_DEFAULT
         )

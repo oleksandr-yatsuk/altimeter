@@ -1,6 +1,6 @@
 """Resource Link Fields represent field containing ids of other top level resources in the graph.
 For example, an EC2 instance has a ResourceLinkField with source_key 'VpcId' pointing to a VPC."""
-from typing import Dict, Any, Type, Union
+from typing import Dict, Any, Optional, Type, Union
 
 from altimeter.core.graph.field.exceptions import (
     ResourceLinkFieldSourceKeyNotFoundException,
@@ -22,7 +22,7 @@ class ResourceLinkField(Field):
             >>> class TestResourceSpec(ResourceSpec): type_name="thing"
             >>> input = {"ThingId": "123"}
             >>> field = ResourceLinkField("ThingId", TestResourceSpec)
-            >>> link_collection = field.parse(data=input, context={})
+            >>> link_collection = field.parse(data=input, context={"all_resource_spec_classes": [TestResourceSpec]})
             >>> print(link_collection.dict(exclude_unset=True))
             {'resource_links': ({'pred': 'thing', 'obj': 'thing:123'},)}
 
@@ -31,7 +31,7 @@ class ResourceLinkField(Field):
             >>> class TestResourceSpec(ResourceSpec): type_name="thing"
             >>> input = {"ThingId": "thing:123"}
             >>> field = ResourceLinkField("ThingId", TestResourceSpec, value_is_id=True)
-            >>> link_collection = field.parse(data=input, context={})
+            >>> link_collection = field.parse(data=input, context={"all_resource_spec_classes": [TestResourceSpec]})
             >>> print(link_collection.dict(exclude_unset=True))
             {'resource_links': ({'pred': 'thing', 'obj': 'thing:123'},)}
 
@@ -50,7 +50,7 @@ class ResourceLinkField(Field):
         self,
         source_key: str,
         resource_spec_class: Union[Type[ResourceSpec], str],
-        alti_key: str = None,
+        alti_key: Optional[str] = None,
         optional: bool = False,
         value_is_id: bool = False,
     ):
@@ -76,6 +76,9 @@ class ResourceLinkField(Field):
             )
         else:
             resource_spec_class = self._resource_spec_class
+        all_resource_spec_classes = context.get("all_resource_spec_classes", [])
+        if resource_spec_class not in all_resource_spec_classes:
+            return LinkCollection()
         if not self.alti_key:
             self.alti_key = resource_spec_class.type_name
         short_resource_id = data.get(self.source_key)
@@ -96,7 +99,9 @@ class ResourceLinkField(Field):
             resource_id = short_resource_id
         else:
             resource_id = resource_spec_class.generate_id(short_resource_id, context)
-        return LinkCollection(resource_links=[ResourceLink(pred=self.alti_key, obj=resource_id)],)
+        return LinkCollection(
+            resource_links=[ResourceLink(pred=self.alti_key, obj=resource_id)],
+        )
 
 
 class EmbeddedResourceLinkField(SubField):
@@ -110,7 +115,7 @@ class EmbeddedResourceLinkField(SubField):
             >>> class TestResourceSpec(ResourceSpec): type_name="thing"
             >>> input = {"Thing": ["123", "456"]}
             >>> field = ListField("Thing", EmbeddedResourceLinkField(TestResourceSpec))
-            >>> link_collection = field.parse(data=input, context={})
+            >>> link_collection = field.parse(data=input, context={"all_resource_spec_classes": [TestResourceSpec]})
             >>> print(link_collection.dict(exclude_unset=True))
             {'resource_links': ({'pred': 'thing', 'obj': 'thing:123'}, {'pred': 'thing', 'obj': 'thing:456'})}
 
@@ -125,7 +130,7 @@ class EmbeddedResourceLinkField(SubField):
     def __init__(
         self,
         resource_spec_class: Union[Type[ResourceSpec], str],
-        alti_key: str = None,
+        alti_key: Optional[str] = None,
         optional: bool = False,
         value_is_id: bool = False,
     ):
@@ -158,7 +163,9 @@ class EmbeddedResourceLinkField(SubField):
             resource_id = short_resource_id
         else:
             resource_id = resource_spec_class.generate_id(short_resource_id, context)
-        return LinkCollection(resource_links=[ResourceLink(pred=self.alti_key, obj=resource_id)],)
+        return LinkCollection(
+            resource_links=[ResourceLink(pred=self.alti_key, obj=resource_id)],
+        )
 
 
 class TransientResourceLinkField(Field):
@@ -183,7 +190,7 @@ class TransientResourceLinkField(Field):
             >>> class TestResourceSpec(ResourceSpec): type_name="thing"
             >>> input = {"ThingId": "123"}
             >>> field = TransientResourceLinkField("ThingId", TestResourceSpec)
-            >>> link_collection = field.parse(data=input, context={})
+            >>> link_collection = field.parse(data=input, context={"all_resource_spec_classes": [TestResourceSpec]})
             >>> print(link_collection.dict(exclude_unset=True))
             {'transient_resource_links': ({'pred': 'thing', 'obj': 'thing:123'},)}
     """
@@ -192,7 +199,7 @@ class TransientResourceLinkField(Field):
         self,
         source_key: str,
         resource_spec_class: Union[Type[ResourceSpec], str],
-        alti_key: str = None,
+        alti_key: Optional[str] = None,
         optional: bool = False,
         value_is_id: bool = False,
     ):
@@ -262,7 +269,7 @@ class TransientEmbeddedResourceLinkField(SubField):
     def __init__(
         self,
         resource_spec_class: Union[Type[ResourceSpec], str],
-        alti_key: str = None,
+        alti_key: Optional[str] = None,
         optional: bool = False,
         value_is_id: bool = False,
     ):
