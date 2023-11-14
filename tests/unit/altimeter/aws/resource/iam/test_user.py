@@ -1,16 +1,18 @@
+from unittest.mock import patch
+
 import boto3
 from botocore.exceptions import ClientError
-from unittest import TestCase
 from moto import mock_iam
-from unittest.mock import patch
+
 from altimeter.aws.resource.iam.user import IAMUserResourceSpec
 from altimeter.aws.scan.aws_accessor import AWSAccessor
 from altimeter.aws.scan.settings import ALL_RESOURCE_SPEC_CLASSES
+from tests.unit.test_case import BaseTestCase
 
 
-class TestIAMUser(TestCase):
+class TestIAMUser(BaseTestCase):
     @mock_iam
-    def test_disappearing_user_race_condition_get_user_access_keys(self):
+    def test_get_user_access_keys_not_called(self):
         account_id = "123456789012"
         user_name = "foo"
         region_name = "us-east-1"
@@ -23,20 +25,15 @@ class TestIAMUser(TestCase):
         with patch(
             "altimeter.aws.resource.iam.user.IAMUserResourceSpec.get_user_access_keys"
         ) as mock_get_group_users:
-            mock_get_group_users.side_effect = ClientError(
-                operation_name="ListAccessKeys",
-                error_response={
-                    "Error": {
-                        "Code": "NoSuchEntity",
-                        "Message": f"The user with name {user_name} cannot be found.",
-                    }
-                },
-            )
             resources = IAMUserResourceSpec.scan(
                 scan_accessor=scan_accessor,
                 all_resource_spec_classes=ALL_RESOURCE_SPEC_CLASSES,
             )
-            self.assertEqual(resources, [])
+
+            mock_get_group_users.assert_not_called()
+
+            self.assertEqual(len(resources), 1)
+            self.assertEqual(resources[0].resource_id, "arn:aws:iam::123456789012:user/foo")
 
     @mock_iam
     def test_disappearing_access_key_race_condition(self):
